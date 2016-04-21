@@ -14,6 +14,11 @@ class Robot():
                 "requestTexture",
                 requestTexture
         )
+        self.move_service = rospy.ServiceProxy(
+                "moveService",
+                moveService
+        )
+
         self.temperature_subscriber = rospy.Subscriber(
                 "/temp_sensor/data",
                 Bool,
@@ -62,10 +67,14 @@ class Robot():
         self.got_callback = False
         text_response = texture_requester('temp')
         texture = text_response.data
+       # PROBABILITY SHIT????? 
         
-
-
-
+        rospy.wait_for_service('moveService')
+        respo = self.move_service(self.move_list.pop(0))
+ 
+        self.temperature_data.publish(message.data)       
+        self.texture_data.publish(texture)
+       # MORE PROBABILITY SHIT????????
 
 
 if __name__ == '__main__':
