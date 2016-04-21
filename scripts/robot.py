@@ -75,7 +75,8 @@ class Robot():
         self.temperature_data.publish(message.data)       
         self.texture_data.publish(texture)
        # MORE PROBABILITY SHIT????????
-
+        if len(self.move_list) == 0:
+            rospy.signal_shutdown()
 
 if __name__ == '__main__':
     try:
