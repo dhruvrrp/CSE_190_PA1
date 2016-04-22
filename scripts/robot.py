@@ -131,6 +131,37 @@ class Robot():
         rospy.wait_for_service('moveService')
         respo = self.move_service(self.move_list.pop(0))
 
+        prob_move_correct = self.config["prob_move_correct"]
+        tmpProb = [ [ value for __ in row ] for row in self.config["pipe_map"]]
+        possible_moves = self.config["possible_moves"]
+
+        for x in range(0, len(self.probGrid[0])):
+            for y in range(0, len(self.probGrid)):
+                for mv in possible_moves:
+                    new_x = x + mv[0]
+                    new_y = y + mv[1]
+                    if new_x < 0:
+                        new_x = len(self.probGrid[0])
+                    if new_y < 0:
+                        new_y = len(self.probGrid)
+                    if new_x > len(self.probGrid[0]):
+                        new_x = 0.0
+                    if new_y > len(self.probGrid):
+                        new_y = 0.0
+                    if mv == cur_mov:
+                        tmpProb[x][y] += pro_move_correct *
+                                         self.probGrid[new_x][new_y]
+                    else:
+                        tmpProb[x][y] += ((1.0 - pro_mov_correct)/
+                                         (len(possible_moves) - 1.0))
+
+        self.probTable = RobotProbabilities()
+        self.probTable.data = tmpProb
+
+        self.probabilities.publish(self.probTable)
+
+
+
        # MORE PROBABILITY SHIT????????
 
 
