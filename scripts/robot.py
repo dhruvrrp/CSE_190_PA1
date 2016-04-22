@@ -1,9 +1,17 @@
 #!/usr/bin/env python
 # license removed for brevity
 import rospy
+import random
 from std_msgs.msg import Bool
 from cse_190_assi_1.msg import temperatureMessage
 from cse_190_assi_1.msg import RobotProbabilities
+from read_config import read_config
+from cse_190_assi_1.srv import requestTexture, moveService
+
+from std_msgs.msg import String
+
+
+from std_msgs.msg import Float32
 
 class Robot():
     def __init__(self):
@@ -21,17 +29,17 @@ class Robot():
 
         self.temperature_subscriber = rospy.Subscriber(
                 "/temp_sensor/data",
-                Bool,
+                temperatureMessage,
                 self.handle_temperature
         )
         self.temperature_activator = rospy.Publisher(
                 "/temp_sensor/activation",
-                temperatureMessage,
+                Bool,
                 queue_size = 10
         )
         self.temperature_data = rospy.Publisher(
                 "/results/temperature_data",
-                temperatureMessage,
+                Float32,
                 queue_size = 10
         )
         self.texture_data = rospy.Publisher(
@@ -67,7 +75,7 @@ class Robot():
         self.got_callback = False
         text_response = texture_requester('temp')
         texture = text_response.data
-       # PROBABILITY SHIT????? 
+        # PROBABILITY SHIT????? 
         
         rospy.wait_for_service('moveService')
         respo = self.move_service(self.move_list.pop(0))
@@ -80,7 +88,7 @@ class Robot():
 
 if __name__ == '__main__':
     try:
-        robot()
+        Ro = Robot()
         
     except rospy.ROSInterruptException:
         pass
