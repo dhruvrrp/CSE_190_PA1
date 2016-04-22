@@ -60,6 +60,11 @@ class Robot():
                 RobotProbabilities,
                 queue_size = 10
         )
+        self.completion = rospy.Publisher(
+                "/map_node/sim_complete",
+                Bool,
+                queue_size = 10
+        )
 
         self.move_list = self.config["move_list"]
         self.temp_message = temperatureMessage()
@@ -77,7 +82,7 @@ class Robot():
                 self.temperature_activator.publish(self.sensor_on)
                 self.rate.sleep()
 
-    def getPDF(x, mean, sd):
+    def getPDF(self, x, mean, sd):
         xu = x - mean
         xu2 = xu * xu
         var = sd * sd
@@ -89,7 +94,7 @@ class Robot():
 
         return out
 
-    def pipeToTemp(e):
+    def pipeToTemp(self, e):
         if(e == 'H'):
             return 40
         elif(e == '-'):
@@ -100,27 +105,34 @@ class Robot():
             return 0
 
     def handle_temperature(self, message):
-
         self.got_callback = False
+
         text_response = self.texture_requester()
         texture = text_response.data
-        # PROBABILITY SHIT?????
 
-        for r in self.pg_rows:
-            for c in self.pg_cols:
+        self.temperature_data.publish(message.temperature)
+        self.texture_data.publish(texture)
+
+        # PROBABILITY SHIT?????
+        print_2d_floats(self.probGrid)
+        if len(self.move_list) == 0:
+#Should Sleep here
+            self.completion.publish(True)
+#Should Sleep and here too
+            rospy.signal_shutdown("Done")
+
+        for r in range(self.pg_rows):
+            for c in range(self.pg_cols):
+                probTex = self.config["prob_tex_correct"] if (texture == self.config["texture_map"]) else (1 - self.config["prob_tex_correct"])
                 mean_tmp = self.config["pipe_map"][r][c]
-                probTemp = getPDF(message.data, pipeToTemp(mean_tmp), self.config["temp_noise_std_dev"])
+                probTemp = self.getPDF(message.temperature, self.pipeToTemp(mean_tmp), self.config["temp_noise_std_dev"])
+                self.probGrid[r][c] = self.probGrid[r][c] * probTex * probTemp
 
         rospy.wait_for_service('moveService')
         respo = self.move_service(self.move_list.pop(0))
 
-        self.temperature_data.publish(message.temperature)
-        self.texture_data.publish(texture)
        # MORE PROBABILITY SHIT????????
 
-
-        if len(self.move_list) == 0:
-            rospy.signal_shutdown()
 
 if __name__ == '__main__':
     try:
