@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # license removed for brevity
+import math
 import rospy
 import random
 from std_msgs.msg import Bool
@@ -13,11 +14,18 @@ from std_msgs.msg import String
 
 from std_msgs.msg import Float32
 
+from util import *
+
 class Robot():
     def __init__(self):
 
         self.config = read_config()
         rospy.init_node("robot")
+        self.pg_cols = len(self.config["pipe_map"][0])
+        self.pg_rows = len(self.config["pipe_map"])
+        value = 1.0 / (self.pg_cols * self.pg_rows)
+        self.probGrid = [ [ value for __ in row ] for row in self.config["pipe_map"]]
+        print_2d_floats(self.probGrid)
         self.texture_requester = rospy.ServiceProxy(
                 "requestTexture",
                 requestTexture
@@ -69,26 +77,54 @@ class Robot():
                 self.temperature_activator.publish(self.sensor_on)
                 self.rate.sleep()
 
+    def getPDF(x, mean, sd):
+        xu = x - mean
+        xu2 = xu * xu
+        var = sd * sd
+
+        to_exp = -xu2/(2 * var)
+        lft = 1 / (sd * math.sqrt(2 * math.pi))
+
+        out = lft * math.exp(to_exp)
+
+        return out
+
+    def pipeToTemp(e):
+        if(e == 'H'):
+            return 40
+        elif(e == '-'):
+            return 25
+        elif(e == 'C'):
+            return 20
+        else:
+            return 0
 
     def handle_temperature(self, message):
 
         self.got_callback = False
         text_response = texture_requester('temp')
         texture = text_response.data
-        # PROBABILITY SHIT????? 
-        
+        # PROBABILITY SHIT?????
+
+        for r in self.pg_rows:
+            for c in self.pg_cols:
+                mean_tmp = self.config["pipe_map"][r][c]
+                probTemp = getPDF(message.data, pipeToTemp(mean_tmp), self.config["temp_noise_std_dev"])
+
         rospy.wait_for_service('moveService')
         respo = self.move_service(self.move_list.pop(0))
- 
-        self.temperature_data.publish(message.data)       
+
+        self.temperature_data.publish(message.data)
         self.texture_data.publish(texture)
        # MORE PROBABILITY SHIT????????
+
+
         if len(self.move_list) == 0:
             rospy.signal_shutdown()
 
 if __name__ == '__main__':
     try:
         Ro = Robot()
-        
+
     except rospy.ROSInterruptException:
         pass
