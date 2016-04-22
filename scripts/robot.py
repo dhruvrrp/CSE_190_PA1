@@ -63,7 +63,7 @@ class Robot():
 
         self.move_list = self.config["move_list"]
         self.temp_message = temperatureMessage()
-        self.sensor_on = False
+        self.sensor_on = True
         self.got_callback = True
         random.seed(self.config['seed'])
         self.rate = rospy.Rate(1)
@@ -102,7 +102,7 @@ class Robot():
     def handle_temperature(self, message):
 
         self.got_callback = False
-        text_response = texture_requester('temp')
+        text_response = self.texture_requester()
         texture = text_response.data
         # PROBABILITY SHIT?????
 
@@ -114,7 +114,7 @@ class Robot():
         rospy.wait_for_service('moveService')
         respo = self.move_service(self.move_list.pop(0))
 
-        self.temperature_data.publish(message.data)
+        self.temperature_data.publish(message.temperature)
         self.texture_data.publish(texture)
        # MORE PROBABILITY SHIT????????
 
